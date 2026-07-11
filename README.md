@@ -1,33 +1,46 @@
 # Reolink NVR Manager
 
-A fully local Hubitat integration for Reolink NVRs.
+A local Hubitat integration for Reolink NVR systems.
+
+Provides Hubitat devices for:
+
+- Motion detection
+- Person detection
+- Vehicle detection
+
+Designed for local LAN operation with no cloud dependency.
 
 ## Features
 
-- Automatic camera discovery
-- Motion sensors
-- Person sensors
-- Vehicle sensors
-- Automatic token renewal
-- Local LAN communication
-- Rule Machine compatible
-- No cloud required
+🚧 Development Version
+
+Current goals:
+
+- [x] Reolink API login
+- [x] Token authentication
+- [x] GetChannelstatus testing
+- [x] GetEvents testing
+- [ ] Automatic camera discovery
+- [ ] Motion sensors
+- [ ] Person sensors
+- [ ] Vehicle sensors
+- [ ] Hubitat Rule Machine integration
 
 ## Requirements
 
-- Hubitat C7/C8
-- Reolink RLN8/RLN16 NVR
-- Reolink API enabled
+- Hubitat C7/C8 hub
+- Reolink NVR with API access
+- Local network connection
+
+Tested hardware:
+
+- Reolink RLN8-410
+- Reolink cameras with AI detection support
 
 ## Installation
 
-1. Import the App.
-2. Import the Driver.
-3. Install the app.
-4. Enter your NVR credentials.
-5. Click Discover Cameras.
-6. Start building automations.
+Installation instructions will be added after the first stable release.
 
-## Status
+## License
 
-🚧 Active development# Reolink-NVR-Manager
+MIT License
