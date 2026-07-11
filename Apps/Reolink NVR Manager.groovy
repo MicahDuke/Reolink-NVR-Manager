@@ -3,7 +3,7 @@
  *
  * Hubitat integration for Reolink NVR systems
  *
- * Version: 0.2.0
+ * Version: 0.3.0
  * Author: Micah Duke
  *
  * License: MIT
@@ -71,24 +71,30 @@ def mainPage() {
         }
 
 
-section("Actions") {
+		section("Actions") {
 
 
-    input(
-        name: "testLogin",
-        type: "button",
-        title: "Test Reolink Login"
-    )
+    		input(
+        		name: "testLogin",
+        		type: "button",
+        		title: "Test Reolink Login"
+    		)
 
 
-    input(
-        name: "discoverCameras",
-        type: "button",
-        title: "Discover Cameras"
-    )
+    		input(
+        		name: "discoverCameras",
+        		type: "button",
+        		title: "Discover Cameras"
+    		)
 
-}
 
+    		input(
+        		name: "createDevices",
+        		type: "button",
+        		title: "Create Motion Devices"
+    		)
+
+		}
 
         section("Status") {
 
@@ -116,10 +122,16 @@ def appButtonHandler(btn) {
             break
 
 
-
         case "discoverCameras":
 
             discoverCameras()
+
+            break
+
+
+        case "createDevices":
+
+            createMotionDevices()
 
             break
 
@@ -309,6 +321,56 @@ def discoverCameras() {
 
 
         log.info "Camera discovery complete"
+
+    }
+
+}
+
+def createMotionDevices(){
+
+
+    log.info "Creating Reolink motion devices"
+
+
+    if(!state.cameras){
+
+        log.error "No cameras found. Run discovery first."
+
+        return
+
+    }
+
+
+    state.cameras.each { cam ->
+
+
+        def dni = "reolink-motion-${cam.channel}"
+
+
+        if(!getChildDevice(dni)){
+
+
+            addChildDevice(
+                "MicahDuke",
+                "Reolink AI Sensor",
+                dni,
+                [
+                    label:"${cam.name} Motion"
+                ]
+            )
+
+
+            log.info "Created ${cam.name} Motion"
+
+
+        }
+        else {
+
+
+            log.info "${cam.name} already exists"
+
+
+        }
 
     }
 
