@@ -1,12 +1,8 @@
 /**
  * Reolink AI Sensor
  *
- * Hubitat driver for Reolink NVR events
- *
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: Micah Duke
- *
- * MIT License
  */
 
 metadata {
@@ -20,21 +16,24 @@ metadata {
         capability "Motion Sensor"
         capability "Sensor"
 
-    }
-
-
-    preferences {
-
-        input(
-            name:"debugLogging",
-            type:"bool",
-            title:"Enable debug logging",
-            defaultValue:false
-        )
+        attribute "eventType", "string"
 
     }
 
 }
+
+
+preferences {
+
+    input(
+        name:"debugLogging",
+        type:"bool",
+        title:"Enable debug logging",
+        defaultValue:false
+    )
+
+}
+
 
 
 def installed(){
@@ -44,10 +43,30 @@ def installed(){
         value:"inactive"
     )
 
+
 }
 
 
+
 def updateMotion(value){
+
+    sendEvent(
+        name:"motion",
+        value:value
+    )
+
+
+    if(debugLogging){
+
+        log.info "${device.label}: ${value}"
+
+    }
+
+}
+
+
+
+def updateEvent(value){
 
     sendEvent(
         name:"motion",
