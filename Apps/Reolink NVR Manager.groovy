@@ -3,7 +3,7 @@
  *
  * Hubitat integration for Reolink NVR systems
  *
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: Micah Duke
  *
  * License: MIT
@@ -24,7 +24,7 @@ definition(
 preferences {
 
     page(
-        name: "mainPage"
+        name:"mainPage"
     )
 
 }
@@ -71,16 +71,23 @@ def mainPage() {
         }
 
 
-        section("Actions") {
+section("Actions") {
 
 
-            input(
-                name: "testLogin",
-                type: "button",
-                title: "Test Reolink Login"
-            )
+    input(
+        name: "testLogin",
+        type: "button",
+        title: "Test Reolink Login"
+    )
 
-        }
+
+    input(
+        name: "discoverCameras",
+        type: "button",
+        title: "Discover Cameras"
+    )
+
+}
 
 
         section("Status") {
@@ -99,9 +106,22 @@ def mainPage() {
 def appButtonHandler(btn) {
 
 
-    if(btn == "testLogin") {
+    switch(btn) {
 
-        loginReolink()
+
+        case "testLogin":
+
+            loginReolink()
+
+            break
+
+
+
+        case "discoverCameras":
+
+            discoverCameras()
+
+            break
 
     }
 
@@ -198,7 +218,101 @@ def loginReolink() {
 
 }
 
+def discoverCameras() {
 
+
+    log.info "Starting camera discovery"
+
+
+    def token = state.reolinkToken
+
+
+    if(!token) {
+
+        log.error "No token. Login first."
+
+        return
+
+    }
+
+
+
+    def body = """
+[
+ {
+  "cmd":"GetChannelstatus",
+  "param":{}
+ }
+]
+"""
+
+
+    httpPost(
+
+        [
+            uri:
+            "http://${settings.nvrIP}/api.cgi?cmd=GetChannelstatus&token=${token}",
+
+            headers:[
+                "Content-Type":"application/json"
+            ],
+
+            body:body
+        ]
+
+    ){ response ->
+
+
+
+        def jsonText =
+            response.data.toString()
+
+
+        log.info "Channel Response:"
+        log.info jsonText
+
+
+
+        def json =
+            new groovy.json.JsonSlurper()
+            .parseText(jsonText)
+
+
+
+        def cameras =
+            []
+
+
+        json[0].value.status.each { cam ->
+
+
+            if(cam.online == 1) {
+
+
+                cameras << [
+
+                    channel:cam.channel,
+
+                    name:cam.name
+
+                ]
+
+
+                log.info "Found camera: ${cam.channel} - ${cam.name}"
+
+            }
+
+        }
+
+
+        state.cameras = cameras
+
+
+        log.info "Camera discovery complete"
+
+    }
+
+}
 
 def installed() {
 
