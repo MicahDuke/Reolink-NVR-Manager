@@ -42,6 +42,8 @@ Initial development release
 - Improved multi-camera event handling
 
 ### v0.2.2
+- ### Changed Renamed driver file from Reolink AI Sensor to Reolink Motion Sensor
+- Updated driver naming to match Hubitat Motion Sensor capability
 - Stable working release
 - Verified active/inactive motion operation on multiple Reolink cameras
 - Verified independent camera clearing
