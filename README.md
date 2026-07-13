@@ -20,10 +20,10 @@ Current goals:
 - [x] Token authentication
 - [x] GetChannelstatus testing
 - [x] GetEvents testing
-- [ ] Automatic camera discovery
-- [ ] Motion sensors
-- [ ] Person sensors
-- [ ] Vehicle sensors
+- [x] Automatic camera discovery
+- [x] Motion sensors
+- [x] Person sensors
+- [x] Vehicle sensors
 - [ ] Hubitat Rule Machine integration
 
 ## Requirements
@@ -35,11 +35,49 @@ Current goals:
 Tested hardware:
 
 - Reolink RLN8-410
-- Reolink cameras with AI detection support
+- Reolink 510a cameras, PoE Doorbell with AI detection support
 
 ## Installation
 
-Installation instructions will be added after the first stable release.
+## Installation
+
+### Current Development Release
+
+This integration is currently in beta testing. Installation is performed manually through Hubitat's code editors.
+
+1. Install the **Reolink Motion Sensor** driver:
+   - Open Hubitat Web Interface
+   - Go to **Drivers Code**
+   - Select **New Driver**
+   - Paste the Reolink Motion Sensor driver code
+   - Click **Save**
+
+2. Install the **Reolink NVR Manager** app:
+   - Go to **Apps Code**
+   - Select **New App**
+   - Paste the Reolink NVR Manager app code
+   - Click **Save**
+
+3. Add the app:
+   - Go to **Apps**
+   - Select **Add User App**
+   - Choose **Reolink NVR Manager**
+   - Enter your Reolink NVR IP address, username, and password
+   - Select your polling interval
+   - Use **Login and Create Devices** to create camera motion devices
+
+4. Verify operation:
+   - Open **Logs → Live Logs**
+   - Trigger motion in front of a Reolink camera
+   - Confirm the corresponding Hubitat motion device changes to **active**
+   - Confirm it returns to **inactive** after the timeout period
+
+### Notes
+- Designed for Reolink NVR systems using the Reolink API (tested with RLN8-410).
+- Each camera channel is created as a separate Hubitat motion sensor device.
+- Debug logging is disabled by default. Troubleshooting logs can be manually enabled in the app code when needed.
+
+Installation instructions will be updated after the first stable release.
 
 ## License
 
