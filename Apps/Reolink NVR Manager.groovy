@@ -1,391 +1,373 @@
 /**
- * Reolink NVR Manager
- *
- * Hubitat integration for Reolink NVR systems
- *
- * Version: 0.3.0
+ * Reolink NVR Manager v0.2.2
+ * RLN8-410 Integration
  * Author: Micah Duke
- *
- * License: MIT
  */
 
 definition(
     name: "Reolink NVR Manager",
-    namespace: "MicahDuke",
+    namespace: "local.reolink",
     author: "Micah Duke",
-    description: "Local Hubitat integration for Reolink NVR AI events",
-    category: "Security",
+    description: "Reolink NVR Motion Integration",
+    category: "Convenience",
     singleInstance: true,
     iconUrl: "https://raw.githubusercontent.com/hubitat/HubitatPublic/master/resources/images/icon.png",
     iconX2Url: "https://raw.githubusercontent.com/hubitat/HubitatPublic/master/resources/images/icon.png"
 )
 
-
 preferences {
-
-    page(
-        name:"mainPage"
-    )
-
+    page(name: "mainPage")
+    page(name: "loginPage")
 }
 
-
 def mainPage() {
-
-
     dynamicPage(
         name: "mainPage",
-        title: "Reolink NVR Manager",
+        title: "Reolink NVR Setup",
         install: true,
         uninstall: true
     ) {
-
-
         section("NVR Settings") {
-
-
             input(
-                name: "nvrIP",
-                type: "text",
+                "nvrIP",
+                "text",
                 title: "NVR IP Address",
                 defaultValue: "192.168.0.32",
                 required: true
             )
 
-
             input(
-                name: "username",
-                type: "text",
+                "username",
+                "text",
                 title: "Username",
                 required: true
             )
 
-
             input(
-                name: "password",
-                type: "password",
+                "password",
+                "password",
                 title: "Password",
                 required: true
             )
 
+            input(
+                "pollTime",
+                "number",
+                title: "Polling seconds",
+                defaultValue: 10,
+                required: true
+            )
         }
 
+section("Actions") {
 
-		section("Actions") {
+    href(
+        name: "loginTest",
+        title: "Login and Create Devices",
+        description: "Connect to Reolink",
+        page: "loginPage"
+    )
 
+    input(
+        name: "restartPolling",
+        type: "button",
+        title: "Restart Polling"
+    )
 
-    		input(
-        		name: "testLogin",
-        		type: "button",
-        		title: "Test Reolink Login"
-    		)
-
-
-    		input(
-        		name: "discoverCameras",
-        		type: "button",
-        		title: "Discover Cameras"
-    		)
-
-
-    		input(
-        		name: "createDevices",
-        		type: "button",
-        		title: "Create Motion Devices"
-    		)
-
-		}
-
-        section("Status") {
-
-
-            paragraph "Reolink NVR Manager v0.1.0"
-
-        }
-
-    }
-
+    input(
+        name: "testNames",
+        type: "button",
+        title: "Test Camera Names"
+    )
 }
 
-
+        section("Status") {
+            paragraph "RLN8-410 Reolink Integration"
+        }
+    }
+}
 
 def appButtonHandler(btn) {
 
-
     switch(btn) {
 
-
-        case "testLogin":
-
+        case "loginButton":
+            log.info "Manual Reolink Login Started"
             loginReolink()
-
             break
 
+        case "restartPolling":
+            log.info "Restarting Reolink Polling"
 
-        case "discoverCameras":
+            unschedule()
 
-            discoverCameras()
-
+            startPolling()
             break
 
-
-        case "createDevices":
-
-            createMotionDevices()
-
+        case "testNames":
+            log.info "Testing Camera Names"
+            testCameraNames()
             break
-
     }
-
 }
 
+def loginPage() {
+    dynamicPage(
+        name: "loginPage",
+        title: "Reolink Login",
+        install: false,
+        uninstall: false
+    ) {
+        section("Actions") {
 
+            input(
+                name: "loginButton",
+                type: "button",
+                title: "Login & Create Devices"
+            )
 
+        }
+
+        section("Status") {
+            paragraph "Press the button above, then check Live Logs."
+        }
+    }
+}
 
 def loginReolink() {
 
-
-    log.info "Testing Reolink Login"
-
-
-    def body = """
-[
- {
-  "cmd":"Login",
-  "param":{
-   "User":{
-    "userName":"${settings.username}",
-    "password":"${settings.password}"
-   }
-  }
- }
-]
-"""
-
-
-    try {
-
-
-        httpPost(
-            [
-                uri:
-                "http://${settings.nvrIP}/api.cgi?cmd=Login",
-
-                headers:[
-                    "Content-Type":"application/json"
-                ],
-
-                body:body
-            ]
-
-        ){ response ->
-
-
-            def jsonText =
-                response.data.toString()
-
-
-            log.info "Login Response:"
-            log.info jsonText
-
-
-            def json =
-                new groovy.json.JsonSlurper()
-                .parseText(jsonText)
-
-
-
-            if(json[0].code == 0) {
-
-
-                state.reolinkToken =
-                    json[0].value.Token.name
-
-
-                log.info "Login successful"
-
-                log.info "Token stored"
-
-
+    def body = """[
+        {
+            "cmd": "Login",
+            "param": {
+                "User": {
+                    "userName": "${username}",
+                    "password": "${password}"
+                }
             }
-            else {
-
-
-                log.error "Login failed"
-
-            }
-
-
         }
+    ]"""
 
+    httpPost([
+        uri: "http://${nvrIP}/api.cgi?cmd=Login",
+        headers: [
+            "Content-Type": "application/json"
+        ],
+        body: body
+    ]) { response ->
 
-    }
-    catch(Exception e) {
+        def jsonText = response.getData().toString()
 
-
-        log.error "Reolink Login Error: ${e.message}"
-
-    }
-
-
-}
-
-def discoverCameras() {
-
-
-    log.info "Starting camera discovery"
-
-
-    def token = state.reolinkToken
-
-
-    if(!token) {
-
-        log.error "No token. Login first."
-
-        return
-
-    }
-
-
-
-    def body = """
-[
- {
-  "cmd":"GetChannelstatus",
-  "param":{}
- }
-]
-"""
-
-
-    httpPost(
-
-        [
-            uri:
-            "http://${settings.nvrIP}/api.cgi?cmd=GetChannelstatus&token=${token}",
-
-            headers:[
-                "Content-Type":"application/json"
-            ],
-
-            body:body
-        ]
-
-    ){ response ->
-
-
-
-        def jsonText =
-            response.data.toString()
-
-
-        log.info "Channel Response:"
+        log.info "Login Response:"
         log.info jsonText
 
+        def slurper = new groovy.json.JsonSlurper()
+        def json = slurper.parseText(jsonText)
 
+        state.reolinkToken = json[0]?.value?.Token?.name
 
-        def json =
-            new groovy.json.JsonSlurper()
-            .parseText(jsonText)
+        log.info "Token saved ${state.reolinkToken}"
 
+        createDevices()
 
-
-        def cameras =
-            []
-
-
-        json[0].value.status.each { cam ->
-
-
-            if(cam.online == 1) {
-
-
-                cameras << [
-
-                    channel:cam.channel,
-
-                    name:cam.name
-
-                ]
-
-
-                log.info "Found camera: ${cam.channel} - ${cam.name}"
-
-            }
-
-        }
-
-
-        state.cameras = cameras
-
-
-        log.info "Camera discovery complete"
-
+        startPolling()
     }
-
 }
 
-def createMotionDevices(){
+def createDevices() {
 
+    def body = """[
+        {
+            "cmd": "GetChannelstatus",
+            "param": {}
+        }
+    ]"""
 
-    log.info "Creating Reolink motion devices"
+    httpPost([
+        uri: "http://${nvrIP}/api.cgi?cmd=GetChannelstatus&token=${state.reolinkToken}",
+        headers: [
+            "Content-Type": "application/json"
+        ],
+        body: body
+    ]) { response ->
 
+        def json = new groovy.json.JsonSlurper().parseText(response.data.toString())
 
-    if(!state.cameras){
+        json[0]?.value?.status?.each { cam ->
+            if (cam.online == 1) {
+                def dni = "reolink-motion-${cam.channel}"
 
-        log.error "No cameras found. Run discovery first."
+                if (!getChildDevice(dni)) {
+                    addChildDevice(
+                        "local",
+                        "Reolink Motion Sensor",
+                        dni,
+                        [label: "${cam.name} Motion"]
+                    )
+                    log.info "Created ${cam.name} Motion"
+                }
+            }
+        }
+    }
+}
 
+def startPolling() {
+
+    def seconds = pollTime ?: 10
+
+    log.info "Starting Reolink polling every ${seconds} seconds"
+
+    runIn(seconds as Integer, "pollReolink")
+}
+
+def pollReolink() {
+    def token = state.reolinkToken
+    if (!token) {
+        loginReolink()
         return
-
     }
 
+    for (int channel = 0; channel < 5; channel++) {
+        getEvents(channel, token)
+    }
 
-    state.cameras.each { cam ->
+    runIn(pollTime ?: 10, "pollReolink")
+}
 
+def getEvents(channel, token) {
+    def body = """[
+        {
+            "cmd": "GetEvents",
+            "param": {
+                "channel": ${channel}
+            }
+        }
+    ]"""
 
-        def dni = "reolink-motion-${cam.channel}"
+    httpPost([
+        uri: "http://${nvrIP}/api.cgi?cmd=GetEvents&token=${token}",
+        headers: [
+            "Content-Type": "application/json"
+        ],
+        body: body
+    ]) { response ->
+        def jsonText = response.getData().toString()
+//        log.debug "Channel ${channel} response: ${jsonText}"
 
+        def slurper = new groovy.json.JsonSlurper()
+        def json = slurper.parseText(jsonText)
 
-        if(!getChildDevice(dni)){
+        def md = json[0]?.value?.md?.alarm_state ?: 0
+        def person = json[0]?.value?.ai?.people?.alarm_state ?: 0
+        def vehicle = json[0]?.value?.ai?.vehicle?.alarm_state ?: 0
 
+//        log.debug "Channel ${channel}: MD=${md} Person=${person} Vehicle=${vehicle}"
+        
+        def sensor = getChildDevice("reolink-motion-${channel}")
+        if (!sensor) {
+            log.warn "No child device found for channel ${channel}"
+            return
+        }
 
-            addChildDevice(
-                "MicahDuke",
-                "Reolink AI Sensor",
-                dni,
-                [
-                    label:"${cam.name} Motion"
-                ]
+        if(md == 1 || person == 1 || vehicle == 1){
+
+            log.warn "TRIGGER DETECTED: ${sensor.label}"
+
+            sensor.updateMotion("active")
+
+            sensor.sendEvent(name:"person", value:person)
+            sensor.sendEvent(name:"vehicle", value:vehicle)
+            sensor.sendEvent(
+                name:"motionType",
+                value:"Person=${person} Vehicle=${vehicle}"
             )
+		state.clearDevices = state.clearDevices ?: [:]
 
+		state.clearDevices[sensor.deviceNetworkId] = now()
 
-            log.info "Created ${cam.name} Motion"
-
+		runIn(
+		    15,
+ 		   "scheduleClearMotion"
+		)
 
         }
         else {
 
-
-            log.info "${cam.name} already exists"
-
+//            log.debug "${sensor.label}: no event MD=${md} Person=${person} Vehicle=${vehicle}"
 
         }
+    }
+}
 
+def scheduleClearMotion(){
+
+    state.clearDevices.each { deviceId, time ->
+
+        def sensor = getChildDevice(deviceId)
+
+        if(sensor){
+
+            sensor.updateMotion("inactive")
+
+            sensor.sendEvent(name:"person", value:0)
+            sensor.sendEvent(name:"vehicle", value:0)
+            sensor.sendEvent(name:"motionType", value:"None")
+
+            log.warn "${sensor.label}: Motion cleared"
+        }
     }
 
+		state.remove("clearDevices")
+}
+
+
+
+def testCameraNames() {
+    def token = state.reolinkToken
+    if (!token) {
+        log.error "No token"
+        return
+    }
+
+    def body = """[
+        {
+            "cmd": "GetChannelstatus",
+            "param": {}
+        }
+    ]"""
+
+    httpPost([
+        uri: "http://${nvrIP}/api.cgi?cmd=GetChannelstatus&token=${token}",
+        headers: [
+            "Content-Type": "application/json"
+        ],
+        body: body
+    ]) { response ->
+        log.info "CHANNEL STATUS RESPONSE:"
+        log.info response.data.toString()
+    }
 }
 
 def installed() {
-
-    log.info "Reolink NVR Manager installed"
-
+    initialize()
 }
 
-
-
 def updated() {
+    unschedule()
+    initialize()
+}
 
-    log.info "Reolink NVR Manager updated"
+def initialize() {
 
+    log.info "Reolink Manager Started"
+
+    unschedule()
+
+    if(state.reolinkToken) {
+        log.info "Existing token found - restarting polling"
+        startPolling()
+    }
+    else {
+        log.info "No token - login required"
+    }
 }
