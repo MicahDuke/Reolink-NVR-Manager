@@ -1,83 +1,63 @@
 /**
- * Reolink AI Sensor
+ * Reolink Motion Sensor Driver
  *
- * Version: 0.2.0
+ * Version: 2.2.0
  * Author: Micah Duke
+ *
+ * Used by Reolink NVR Manager
  */
 
 metadata {
-
     definition(
-        name: "Reolink AI Sensor",
-        namespace: "MicahDuke",
+        name: "Reolink Motion Sensor",
+        namespace: "local",
         author: "Micah Duke"
     ) {
-
         capability "Motion Sensor"
         capability "Sensor"
 
-        attribute "eventType", "string"
-
+        attribute "person", "number"
+        attribute "vehicle", "number"
+        attribute "motionType", "string"
     }
 
-}
-
-
-preferences {
-
-    input(
-        name:"debugLogging",
-        type:"bool",
-        title:"Enable debug logging",
-        defaultValue:false
-    )
-
-}
-
-
-
-def installed(){
-
-    sendEvent(
-        name:"motion",
-        value:"inactive"
-    )
-
-
-}
-
-
-
-def updateMotion(value){
-
-    sendEvent(
-        name:"motion",
-        value:value
-    )
-
-
-    if(debugLogging){
-
-        log.info "${device.label}: ${value}"
-
+    preferences {
+        input(
+            name: "debugLogging",
+            type: "bool",
+            title: "Enable debug logging",
+            defaultValue: false
+        )
     }
-
 }
 
+def installed() {
+    sendEvent(name: "motion", value: "inactive")
+    sendEvent(name: "motionType", value: "None")
+}
 
+def updateEvent(type) {
+    debugLog("updateEvent(${type})")
+    sendEvent(name: "motionType", value: type)
+}
 
-def updateEvent(value){
+def updateMotion(state) {
 
-    sendEvent(
-        name:"motion",
-        value:value
-    )
+    debugLog("updateMotion(${state})")
 
+    if(device.currentValue("motion") != state) {
 
-    if(debugLogging){
+        log.info "UPDATE MOTION CALLED: ${device.displayName} = ${state}"
 
-        log.info "${device.label}: ${value}"
-
+        sendEvent(
+            name: "motion",
+            value: state
+        )
     }
+}
 
+private void debugLog(msg) {
+    if (settings?.debugLogging) {
+        log.debug msg
+    }
 }
